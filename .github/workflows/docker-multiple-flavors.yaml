@@ -16,7 +16,7 @@ on:
       - '**'
 
 env:
-  TARGET_IMAGE: dersimn/github-actions-to-docker-hub-multiple-flavors
+  TARGET_IMAGE: dersimn/github-actions-to-docker-hub-with-multiple-flavors
   #TARGET_IMAGE: ${{ github.repository }}  # only if username + repository is all lowercase and the same as user + repo on Docker Hubs
 
 jobs:
