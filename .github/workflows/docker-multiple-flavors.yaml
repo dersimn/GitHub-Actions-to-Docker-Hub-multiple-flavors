@@ -81,7 +81,7 @@ jobs:
             # Git branch or tag name
             type=ref,event=branch,suffix=-${{ matrix.flavor }}
             type=ref,event=tag,suffix=-${{ matrix.flavor }}
-            # Git commit short SHA: master-ad132f5
+            # Git commit short SHA: sha-ad132f5-myflavor
             type=sha,suffix=-${{ matrix.flavor }}
 
       - name: Set up QEMU
