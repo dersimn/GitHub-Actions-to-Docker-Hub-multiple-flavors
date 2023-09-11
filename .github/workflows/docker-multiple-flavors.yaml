@@ -1,0 +1,108 @@
+name: Docker build and publish
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '27 4 * * *'
+  push:
+    branches:
+      # Run on every branch
+      - '**'
+      # Except branches beginning with:
+      - '!fail/**'
+      - '!dead-end/**'
+      - '!trash/**'
+    tags:
+      - '**'
+
+env:
+  TARGET_IMAGE: dersimn/github-actions-to-docker-hub-multiple-flavors
+  #TARGET_IMAGE: ${{ github.repository }}  # only if username + repository is all lowercase and the same as user + repo on Docker Hubs
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          # - flavor: alpine  # Name e.g. some different base-image
+          #   latest-flavor-tag: latest  # Tag to be applied on the image considered as 'latest'
+          #   base-image: alpine:3  # Base image, usually first line of Dockerfile e.g.: `FROM alpine:3`
+          #   dockerfile: ./Dockerfile-alpine  # Dockerfile to use with this flavor
+          #   build-platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
+          - flavor: alpine
+            latest-flavor-tag: alpine
+            base-image: alpine:3
+            dockerfile: ./Dockerfile-alpine
+            build-platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
+          - flavor: ubuntu
+            latest-flavor-tag: latest
+            image: ubuntu:22.04
+            dockerfile: ./Dockerfile-ubuntu
+            build-platforms: linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
+    steps:
+      # Since Check step is only run by schedule and schedule always uses default branch,
+      # we don't need to check for multiple target images with different tags or similar.
+      - name: Check if update for base image is available
+        id: check
+        uses: lucacome/docker-image-update-checker@v1
+        if: ${{ github.event_name == 'schedule' }}
+        with:
+          # For images without tag, latest will be checked.
+          base-image: ${{ matrix.base-image }}
+          image: ${{ env.TARGET_IMAGE }}:${{ matrix.latest-flavor-tag }}
+          platforms: ${{ matrix.platforms }}
+
+      - name: Decide to continue or skip
+        id: should-build
+        # If check-step was skipped, output variable will be empty
+        run: echo continue=${{ (steps.check.outputs.needs-updating == 'true') || (github.event_name != 'schedule') }} >> $GITHUB_OUTPUT
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        if: ${{ steps.should-build.outputs.continue == 'true' }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        if: ${{ steps.should-build.outputs.continue == 'true' }}
+        with:
+          images: ${{ env.TARGET_IMAGE }}
+          flavor: |
+            latest=false
+          tags: |
+            # Latest tag only for default branch
+            type=raw,value=${{ matrix.latest-flavor-tag }},enable={{is_default_branch}}
+            # Git branch or tag name
+            type=ref,event=branch,suffix=-${{ matrix.flavor }}
+            type=ref,event=tag,suffix=-${{ matrix.flavor }}
+            # Git short SHA: master-ad132f5
+            # Makes sense only when used with branches,
+            # since tags are already associated with a specific commit.
+            type=sha,prefix={{branch}}-,suffix=-${{ matrix.flavor }},enable=${{ github.ref_type == 'branch' }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+        if: ${{ steps.should-build.outputs.continue == 'true' }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        if: ${{ steps.should-build.outputs.continue == 'true' }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        if: ${{ steps.should-build.outputs.continue == 'true' }}
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME || github.repository_owner }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        if: ${{ steps.should-build.outputs.continue == 'true' }}
+        with:
+          push: true
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platforms }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
