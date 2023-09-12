@@ -26,7 +26,7 @@ jobs:
       matrix:
         include:
           # - flavor: alpine  # Name e.g. some different base-image
-          #   latest-flavor-tag: latest  # Tag to be applied on the image considered as 'latest'
+          #   latest-tag: latest  # Tag to be applied on the image considered as 'latest'
           #   base-image: alpine:3  # Base image, usually first line of Dockerfile e.g.: `FROM alpine:3`
           #   dockerfile: ./Dockerfile-alpine  # Dockerfile to use with this flavor
           #   build-platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
