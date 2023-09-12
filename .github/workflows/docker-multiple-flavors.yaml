@@ -31,17 +31,17 @@ jobs:
           #   dockerfile: ./Dockerfile-alpine  # Dockerfile to use with this flavor
           #   build-platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
           - flavor: alpine
-            latest-flavor-tag: alpine
+            latest-tag: alpine
             base-image: alpine:3
             dockerfile: ./Dockerfile-alpine
             build-platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
           - flavor: ubuntu
-            latest-flavor-tag: latest
+            latest-tag: latest
             image: ubuntu:22.04
             dockerfile: ./Dockerfile-ubuntu
             build-platforms: linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
           - flavor: debian
-            latest-flavor-tag: debian
+            latest-tag: debian
             image: debian:12
             dockerfile: ./Dockerfile-debian
             build-platforms: linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/s390x
@@ -55,8 +55,8 @@ jobs:
         with:
           # For images without tag, latest will be checked.
           base-image: ${{ matrix.base-image }}
-          image: ${{ env.TARGET_IMAGE }}:${{ matrix.latest-flavor-tag }}
-          platforms: ${{ matrix.platforms }}
+          image: ${{ env.TARGET_IMAGE }}:${{ matrix.latest-tag }}
+          platforms: ${{ matrix.build-platforms }}
 
       - name: Decide to continue or skip
         id: should-build
@@ -77,7 +77,7 @@ jobs:
             latest=false
           tags: |
             # Latest tag only for default branch
-            type=raw,value=${{ matrix.latest-flavor-tag }},enable={{is_default_branch}}
+            type=raw,value=${{ matrix.latest-tag }},enable={{is_default_branch}}
             # Git branch or tag name
             type=ref,event=branch,suffix=-${{ matrix.flavor }}
             type=ref,event=tag,suffix=-${{ matrix.flavor }}
@@ -106,6 +106,6 @@ jobs:
           push: true
           context: .
           file: ${{ matrix.dockerfile }}
-          platforms: ${{ matrix.platforms }}
+          platforms: ${{ matrix.build-platforms }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
