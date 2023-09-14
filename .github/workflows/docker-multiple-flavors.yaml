@@ -46,21 +46,25 @@ jobs:
             dockerfile: ./Dockerfile-debian
             build-platforms: linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/s390x
     steps:
-      # Since Check step is only run by schedule and schedule always uses default branch,
-      # we don't need to check for multiple target images with different tags or similar.
       - name: Check if update for base image is available
         id: check
         uses: lucacome/docker-image-update-checker@v1
         if: ${{ github.event_name == 'schedule' }}
         with:
-          # For images without tag, latest will be checked.
+          # Because the variable "matrix.base-image" does not contain a tag, the
+          # "latest" tag is checked by default.
           base-image: ${{ matrix.base-image }}
+          # Since the "check" step is executed only by schedule and the schedule
+          # always uses the default branch, we don't need to check multiple tags
+          # of the target images, the latest tag is enough.
           image: ${{ env.TARGET_IMAGE }}:${{ matrix.latest-tag }}
-          # Platforms containing variants are (at the moment) not supported by update checker,
-          # see <https://github.com/lucacome/docker-image-update-checker/issues/27>.
-          # Workaround: Don't use platform at all. Defaults to check only `linux/amd64`,
-          # since almost every image has at least `linux/amd64` platform and images are
-          # usually updated for all platforms at the same time, this should be fine for now.
+          # Platforms containing variants are (at the moment) not supported by
+          # update checker, see
+          # <https://github.com/lucacome/docker-image-update-checker/issues/27>.
+          # Workaround: Don't use platform at all. Defaults to check only
+          # `linux/amd64`, since almost every image has at least `linux/amd64`
+          # platform and images are usually updated for all platforms at the
+          # same time, this should be fine for now.
           #platforms: ${{ matrix.build-platforms }}
 
       - name: Decide to continue or skip
