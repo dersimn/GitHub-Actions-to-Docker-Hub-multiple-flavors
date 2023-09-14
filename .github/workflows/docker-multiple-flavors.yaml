@@ -26,22 +26,21 @@ jobs:
       matrix:
         include:
           # - flavor: alpine  # Name e.g. some different base-image
-          #   latest-tag: latest  # Tag to be applied on the image considered as 'latest'
+          #   # The flavor with "default-flavor: true" additionally gets the suffix-less Docker tag, e.g. "mybranch-myflavor" and additionally only "mybranch" while all other flavors only have their usual "mybranch-myotherflavor".
+          #   default-flavor: false
           #   base-image: alpine:3  # Base image, usually first line of Dockerfile e.g.: `FROM alpine:3`
           #   dockerfile: ./Dockerfile-alpine  # Dockerfile to use with this flavor
           #   build-platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
           - flavor: alpine
-            latest-tag: alpine
             base-image: alpine:3
             dockerfile: ./Dockerfile-alpine
             build-platforms: linux/386,linux/amd64,linux/arm/v6,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
           - flavor: ubuntu
-            latest-tag: latest
+            default-flavor: true
             base-image: ubuntu:22.04
             dockerfile: ./Dockerfile-ubuntu
             build-platforms: linux/amd64,linux/arm/v7,linux/arm64/v8,linux/ppc64le,linux/s390x
           - flavor: debian
-            latest-tag: debian
             base-image: debian:12
             dockerfile: ./Dockerfile-debian
             build-platforms: linux/386,linux/amd64,linux/arm/v5,linux/arm/v7,linux/arm64/v8,linux/mips64le,linux/ppc64le,linux/s390x
@@ -85,12 +84,21 @@ jobs:
           flavor: |
             latest=false
           tags: |
-            # Latest tag only for default branch
-            type=raw,value=${{ matrix.latest-tag }},enable={{is_default_branch}}
-            # Git branch or tag name
+            # Latest tag only for default flavor & default branch
+            type=raw,value=latest,enable=${{ format('refs/heads/{0}', github.event.repository.default_branch) == github.ref && matrix.default-flavor || 'false' }}
+            # plain flavor string on default branch
+            type=raw,value=${{ matrix.flavor }},enable={{is_default_branch}}
+            # Branch name WITHOUT suffix for default flavor
+            type=ref,event=branch,enable=${{ matrix.default-flavor || 'false' }}
+            # Branch name WITH suffix for every branch & flavor
             type=ref,event=branch,suffix=-${{ matrix.flavor }}
+            # Git Tag WITHOUT suffix for default flavor
+            type=ref,event=tag,enable=${{ matrix.default-flavor || 'false' }}
+            # Git Tag WITH suffix for every tag & flavor
             type=ref,event=tag,suffix=-${{ matrix.flavor }}
-            # Git commit short SHA: sha-ad132f5-myflavor
+            # Commit short SHA WITHOUT suffix for default flavor
+            type=sha,enable=${{ matrix.default-flavor || 'false' }}
+            # Commit short SHA WITH suffix every flavor: sha-ad132f5-myflavor
             type=sha,suffix=-${{ matrix.flavor }}
 
       - name: Set up QEMU
