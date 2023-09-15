@@ -50,13 +50,12 @@ jobs:
         uses: lucacome/docker-image-update-checker@v1
         if: ${{ github.event_name == 'schedule' }}
         with:
-          # Because the variable "matrix.base-image" does not contain a tag, the
-          # "latest" tag is checked by default.
           base-image: ${{ matrix.base-image }}
           # Since the "check" step is executed only by schedule and the schedule
-          # always uses the default branch, we don't need to check multiple tags
-          # of the target images, the latest tag is enough.
-          image: ${{ env.TARGET_IMAGE }}:${{ matrix.latest-tag }}
+          # always uses the default branch (which is the latest), we don't need
+          # to check multiple tags of the target images, the flavor tag (which
+          # is always the latest) is enough.
+          image: ${{ env.TARGET_IMAGE }}:${{ matrix.flavor }}
           # Platforms containing variants are (at the moment) not supported by
           # update checker, see
           # <https://github.com/lucacome/docker-image-update-checker/issues/27>.
